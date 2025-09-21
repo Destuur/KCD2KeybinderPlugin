@@ -45,9 +45,30 @@ static void WaitForProcessWithMsgPump(HANDLE hProcess)
 	}
 }
 
+static bool HasCommandLineArg(const std::string& arg)
+{
+	// Ganze Commandline abrufen
+	std::string cmd = GetCommandLineA();
+
+	// Alles nach "//" abschneiden (Kommentar-Simulation)
+	size_t commentPos = cmd.find("//");
+	if (commentPos != std::string::npos)
+		cmd = cmd.substr(0, commentPos);
+
+	// Nach Argument suchen
+	return cmd.find(arg) != std::string::npos;
+}
+
 bool __fastcall Hooked_CompleteInit(void* pGame)
 {
 	Log("Hooked_CompleteInit triggered!");
+
+	// Prüfen, ob "-keybinder" als Argument vorhanden ist
+	if (!HasCommandLineArg("-keybinder"))
+	{
+		Log("-keybinder flag not present, skipping Keybinder exe launch");
+		return true; // einfach weitermachen, ohne zu starten
+	}
 
 	char path[MAX_PATH]{ 0 };
 	GetModuleFileNameA(nullptr, path, MAX_PATH);
@@ -76,6 +97,7 @@ bool __fastcall Hooked_CompleteInit(void* pGame)
 		DWORD err = GetLastError();
 		Log("Failed to start KCD2Keybinder.exe! Error=" + std::to_string(err));
 	}
+
 	return true;
 }
 
